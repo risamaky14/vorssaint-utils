@@ -1085,8 +1085,11 @@ final class NotchService: ObservableObject {
             let live = NotchMusicService.shared.playback
             let shown = heldMusic ?? (ownDisplay ? musicStripStandIn(for: live) : nil)
             let playback = shown?.playback ?? live
-            return layout.musicSurface(title: named
-                                        ? playback?.track.title ?? FeatureStrings.radialMenu(language).mediaNowPlaying : nil,
+            let hasLyrics = NotchLyricsService.shared.lyrics.map { !$0.instrumental && !$0.lines.isEmpty } ?? false
+            let titleText = hasLyrics
+                ? String(repeating: "W", count: 40)
+                : (playback?.track.title ?? FeatureStrings.radialMenu(language).mediaNowPlaying)
+            return layout.musicSurface(title: named ? titleText : nil,
                                        geometry: geometry)
         case .timer:
             let timer = NotchTimerService.shared
@@ -4212,6 +4215,19 @@ final class NotchService: ObservableObject {
                 .merge(with: $heldMusic.map { $0?.playback.track.title }.removeDuplicates().map { _ in () })
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] in self?.nameCapsuleSong() }
+                .store(in: &subscriptions)
+            NotchLyricsService.shared.$state.removeDuplicates()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] state in
+                    guard let self else { return }
+                    if state == .ready, let lyrics = NotchLyricsService.shared.lyrics,
+                       !lyrics.instrumental, !lyrics.lines.isEmpty {
+                        self.musicTitleWork?.cancel()
+                        self.musicTitleWork = nil
+                        self.capsuleMusicTitleShown = true
+                        self.refreshCapsuleMusic()
+                    }
+                }
                 .store(in: &subscriptions)
         }
         if NotchSupport.routes(.track) {

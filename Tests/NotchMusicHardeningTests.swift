@@ -156,7 +156,10 @@ enum NotchMusicCommandContract {
     enum NotchQueueSupport { static func isEnabled() -> Bool { true } }
     enum NotchLyricsService {
         static let shared = Reader()
-        final class Reader { func playbackChanged(_ playback: NotchPlayback?) {} }
+        final class Reader {
+            func playbackChanged(_ playback: NotchPlayback?) {}
+            func preload(_ playback: NotchPlayback?) {}
+        }
     }
     final class Scheduler {
         var jobs: [() -> Void] = []

@@ -28,6 +28,7 @@ struct NotchMusicStrip: View {
     /// or a strip on its way out only shows the song.
     var interactive = false
     @ObservedObject private var music = NotchMusicService.shared
+    @ObservedObject private var lyricsService = NotchLyricsService.shared
     @ObservedObject private var l10n = L10n.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -146,16 +147,33 @@ struct NotchMusicStrip: View {
     /// ending at the cover.
     private var namedLabel: some View {
         VStack(alignment: .trailing, spacing: 1) {
-            Text(title)
-                .font(Font(Layout.titleFont as CTFont))
-                .lineLimit(1)
-                .truncationMode(.tail)
-            if showsArtist, let artist {
-                Text(artist)
-                    .font(Font(Layout.artistFont as CTFont))
-                    .foregroundStyle(.white.opacity(0.62))
+            if let playback, let lyrics = lyricsService.lyrics, !lyrics.instrumental, !lyrics.lines.isEmpty, playback.hasPosition {
+                TimelineView(.explicit(lyrics.changeDates(for: playback, offset: lyricsService.offset, from: .now))) { context in
+                    let line = lyrics.activeLine(for: playback, offset: lyricsService.offset, at: context.date)
+                    Text(line ?? title)
+                        .font(Font(Layout.titleFont as CTFont))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    if showsArtist {
+                        Text(line != nil ? title : (artist ?? ""))
+                            .font(Font(Layout.artistFont as CTFont))
+                            .foregroundStyle(.white.opacity(0.62))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                }
+            } else {
+                Text(title)
+                    .font(Font(Layout.titleFont as CTFont))
                     .lineLimit(1)
                     .truncationMode(.tail)
+                if showsArtist, let artist {
+                    Text(artist)
+                        .font(Font(Layout.artistFont as CTFont))
+                        .foregroundStyle(.white.opacity(0.62))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -164,16 +182,33 @@ struct NotchMusicStrip: View {
 
     private var trackLabel: some View {
         VStack(spacing: 1) {
-            Text(title)
-                .font(.system(size: 11, weight: .semibold))
-                .lineLimit(1)
-                .truncationMode(.tail)
-            if showsArtist, let artist {
-                Text(artist)
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.62))
+            if let playback, let lyrics = lyricsService.lyrics, !lyrics.instrumental, !lyrics.lines.isEmpty, playback.hasPosition {
+                TimelineView(.explicit(lyrics.changeDates(for: playback, offset: lyricsService.offset, from: .now))) { context in
+                    let line = lyrics.activeLine(for: playback, offset: lyricsService.offset, at: context.date)
+                    Text(line ?? title)
+                        .font(.system(size: 11, weight: .semibold))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    if showsArtist {
+                        Text(line != nil ? title : (artist ?? ""))
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.62))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                }
+            } else {
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold))
                     .lineLimit(1)
                     .truncationMode(.tail)
+                if showsArtist, let artist {
+                    Text(artist)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.62))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
             }
         }
         .padding(.horizontal, geometry.compactMusicLabelInset)

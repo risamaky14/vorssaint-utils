@@ -257,6 +257,7 @@ struct NotchCapsuleMusicStrip: View {
     /// display or a strip on its way out only shows the song.
     var interactive = false
     @ObservedObject private var music = NotchMusicService.shared
+    @ObservedObject private var lyricsService = NotchLyricsService.shared
     @ObservedObject private var l10n = L10n.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -274,14 +275,18 @@ struct NotchCapsuleMusicStrip: View {
     private var showsControl: Bool { live && service.musicStripShowsControl }
     /// A click's request shows at once, before the player says so.
     private var playing: Bool { (live ? service.musicStripRequest : nil) ?? playback?.isPlaying == true }
+    private var hasSyncedLyrics: Bool {
+        guard let lyrics = lyricsService.lyrics, !lyrics.instrumental, !lyrics.lines.isEmpty else { return false }
+        return playback?.hasPosition == true
+    }
 
     var body: some View {
         let side = CapsuleLayout.artworkSide(geometry)
         // A song is named as it starts and while the pointer rests on its
         // cover, and a strip on its way out leaves as it was. Otherwise the
         // cover and bars say enough.
-        let named = service.capsuleMusicTitleShown || (live ? service.musicStripNamesSong : snapshot?.namesSong == true)
-        NotchCapsuleRow(size: size ?? CapsuleLayout.musicSurface(title: named ? title : nil, geometry: geometry),
+        let named = hasSyncedLyrics || service.capsuleMusicTitleShown || (live ? service.musicStripNamesSong : snapshot?.namesSong == true)
+        NotchCapsuleRow(size: size ?? CapsuleLayout.musicSurface(title: named ? (hasSyncedLyrics ? String(repeating: "W", count: 40) : title) : nil, geometry: geometry),
                         geometry: geometry, leading: 0, trailing: 0) {
             HStack(spacing: 0) {
                 NotchMusicCover(artwork: artwork, side: side, radius: side / 2, source: playback?.track)
@@ -290,8 +295,20 @@ struct NotchCapsuleMusicStrip: View {
                     .contentShape(Rectangle())
                     .onHover { if live { service.hoverMusicStrip(.cover, entered: $0) } }
                 Group {
-                    if named { Text(title).capsuleTitle().truncationMode(.tail).transition(.opacity) }
-                    else { Color.clear }
+                    if hasSyncedLyrics, let playback, let lyrics = lyricsService.lyrics {
+                        TimelineView(.explicit(lyrics.changeDates(for: playback, offset: lyricsService.offset, from: .now))) { context in
+                            let line = lyrics.activeLine(for: playback, offset: lyricsService.offset, at: context.date) ?? title
+                            Text(line)
+                                .capsuleTitle()
+                                .truncationMode(.tail)
+                                .contentTransition(.opacity)
+                                .animation(reduceMotion ? nil : .smooth(duration: 0.22), value: line)
+                        }
+                    } else if named {
+                        Text(title).capsuleTitle().truncationMode(.tail).transition(.opacity)
+                    } else {
+                        Color.clear
+                    }
                 }
                 .padding(.horizontal, CapsuleLayout.endPadding)
                 .frame(maxWidth: .infinity)

@@ -69,6 +69,15 @@ struct NotchLyrics: Equatable {
         }
         return lower == 0 ? nil : lower - 1
     }
+
+    func activeLine(for playback: NotchPlayback, offset: Double = 0, at now: Date) -> String? {
+        guard !instrumental, !lines.isEmpty, playback.hasPosition,
+              let index = activeIndex(at: playback.position(at: now), offset: offset) else { return nil }
+        let line = lines[index].text
+            .replacingOccurrences(of: "\n", with: " · ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return line.isEmpty ? nil : line
+    }
 }
 
 /// At most one recording's lyrics and adjustment remain in memory. Hiding the

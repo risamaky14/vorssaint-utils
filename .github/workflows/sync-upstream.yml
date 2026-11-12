@@ -1,0 +1,35 @@
+name: Sync Upstream & Build Fork
+
+on:
+  schedule:
+    - cron: '15 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Sync upstream and verify build
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync with upstream
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/vorssaint/vorssaint-utils.git || true
+          git fetch upstream main --tags
+          if ! git merge-base --is-ancestor upstream/main HEAD; then
+            git rebase upstream/main
+            git push --force-with-lease origin main
+          else
+            echo "Already up to date with upstream/main."
+          fi
+
+      - name: Build app
+        run: ./build.sh

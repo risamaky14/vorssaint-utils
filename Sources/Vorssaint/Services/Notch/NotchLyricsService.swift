@@ -58,6 +58,11 @@ final class NotchLyricsService: ObservableObject {
         if let playback { update(playback: playback, visible: wasVisible) }
     }
 
+    func preload(_ playback: NotchPlayback?) {
+        guard let playback, NotchLyricsSupport.onlineEnabled() else { return }
+        update(playback: playback, visible: true)
+    }
+
     func retry() {
         guard visible, NotchLyricsSupport.onlineEnabled(), let track else { return }
         cancel()

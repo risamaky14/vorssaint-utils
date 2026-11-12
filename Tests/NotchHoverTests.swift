@@ -78,6 +78,12 @@ enum NotchHoverTests {
             func reset() { performs = true; commandPending = false; accepts = true; sent = [] }
         }
     }
+    enum NotchLyricsService {
+        static let shared = Reader()
+        final class Reader {
+            var lyrics: NotchLyrics? = nil
+        }
+    }
     /// The strip's track by title; the real snapshot also holds its cover and geometry.
     struct NotchCompactMusicSnapshot: Equatable {
         let title: String

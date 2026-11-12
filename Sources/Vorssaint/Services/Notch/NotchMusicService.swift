@@ -285,6 +285,7 @@ final class NotchMusicService: ObservableObject {
         awaitingPlayback = false
         updateAutomation(for: reading.playback)
         NotchLyricsService.shared.playbackChanged(reading.playback)
+        NotchLyricsService.shared.preload(reading.playback)
         updateQueue()
     }
 

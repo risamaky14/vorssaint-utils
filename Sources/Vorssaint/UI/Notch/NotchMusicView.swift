@@ -14,7 +14,7 @@ struct NotchMusicView: View {
     @AppStorage(DefaultsKey.notchLyricsEnabled) private var lyricsEnabled = true
     @AppStorage(DefaultsKey.notchQueueEnabled) private var queueEnabled = true
     @AppStorage(DefaultsKey.notchMusicShowVolume) private var showVolume = false
-    @State private var extra: MusicExtra?
+    @State private var extra: MusicExtra? = .lyrics
     private enum MusicExtra { case lyrics, queue }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.notchSettingsPreview) private var preview
@@ -110,7 +110,7 @@ struct NotchMusicView: View {
             guard !preview else { return }
             NotchService.shared.setMusicDetailsVisible(false)
             NotchService.shared.setPageLayer(.music, close: nil)
-            NotchLyricsService.shared.hide()
+            if service.playback == nil { NotchLyricsService.shared.hide() }
             service.setQueueVisible(false)
             shuffle.stop()
         }
@@ -121,7 +121,7 @@ struct NotchMusicView: View {
         NotchService.shared.setMusicDetailsVisible(openExtra != nil)
         // Escape closes lyrics or the queue before the island.
         NotchService.shared.setPageLayer(.music, close: openExtra == nil ? nil : { extra = nil })
-        NotchLyricsService.shared.update(playback: service.playback, visible: extra == .lyrics)
+        NotchLyricsService.shared.update(playback: service.playback, visible: extra == .lyrics || service.playback != nil)
         service.setQueueVisible(extra == .queue)
     }
 
